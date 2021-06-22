@@ -515,7 +515,8 @@ uint16_t Adafruit_ILI9341::readPixel_x(int16_t x, int16_t y) {
 }
 #endif
 
-void Adafruit_ILI9341::readPixel(
+#if 0
+void Adafruit_ILI9341::readPixel_broken_yellow(
 		uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y) {
     setAddrWindowOnly(x,y,x,y);
 	readcommand8(ILI9341_RAMRD); // command
@@ -525,16 +526,74 @@ void Adafruit_ILI9341::readPixel(
     /* int8_t g = SPI.transfer(0); */
     /* int8_t b = SPI.transfer(0); */
     //int8_t a = readdata();
-    //spiread();
+    spiread();
+    *rp = spiread();
+    *gp = spiread();
+    *bp = spiread();
+    //spiCsHigh();
+    //writecommand(ILI9341_RAMWR); // switch back to write mode
+    //return color565(r,g,b);
+    return;
+}
+#endif 
+
+void Adafruit_ILI9341::readPixel(
+		uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y) {
+	// based on readcommand8()
+    setAddrWindowOnly(x,y,x,y);
+    if(hwSPI) spi_begin();
+
+    spiCsLow();
+    spiDcLow();
+
+    spiwrite(0xD9);  // woo sekret command?
+    spiDcHigh();
+    spiwrite(0x10);
+
+ 	spiDcLow();
+    spiwrite(ILI9341_RAMRD);
+
+    spiDcHigh();
+    spiread();
     *rp = spiread();
     *gp = spiread();
     *bp = spiread();
     spiCsHigh();
-    writecommand(ILI9341_RAMWR); // switch back to write mode
-    //return color565(r,g,b);
+
+    if(hwSPI) spi_end();
     return;
 }
 
+#if 0
+void Adafruit_ILI9341::readBlock(
+		uint8_t *store, int16_t x, int16_t y, int16_t x2, int16_t y2) {
+	// based on readcommand8()
+    setAddrWindowOnly(x,y,x2,y2);
+#endif
+
+void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
+	// based on readcommand8()
+    setAddrWindowOnly(0,y,_width-1,y);
+    if(hwSPI) spi_begin();
+
+    spiCsLow();
+    spiDcLow();
+
+    spiwrite(0xD9);  // woo sekret command?
+    spiDcHigh();
+    spiwrite(0x10);
+
+ 	spiDcLow();
+    spiwrite(ILI9341_RAMRD);
+
+    spiDcHigh();
+    spiread();
+    for (uint16_t i=0; i<_width*3; i++) *(store++) = spiread();
+    spiCsHigh();
+
+    if(hwSPI) spi_end();
+    return;
+}
 
 void Adafruit_ILI9341::pushColor(uint16_t color) {
   if (hwSPI) spi_begin();
