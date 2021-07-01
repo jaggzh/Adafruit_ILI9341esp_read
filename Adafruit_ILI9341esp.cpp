@@ -411,7 +411,9 @@ void Adafruit_ILI9341::begin(void) {
   writeCmdDataTmp(ILI9341_VMCTR2, 0x86);
 
   //MemoryAccessControl
-  writeCmdDataTmp(ILI9341_MADCTL, 0x48);
+  // 0x48 = 1001000 =  MADCTL_BGR | MADCTL_MX
+  madctl_val = 0x48;
+  writeCmdDataTmp(ILI9341_MADCTL, madctl_val); // 1001000
 
   writeCmdDataTmp(ILI9341_PIXFMT, 0x55);
   writeCmdDataTmp(ILI9341_FRMCTR1, 0x00, 0x18);
@@ -537,6 +539,48 @@ void Adafruit_ILI9341::readPixel_broken_yellow(
 }
 #endif 
 
+void Adafruit_ILI9341::setMadctl(
+            bool row_addr_order,
+            bool col_addr_order,
+            bool row_col_exchange,
+            bool vert_refresh,
+            bool rgbbgr,
+            bool hor_refresh
+        ) {
+    // based on readcommand8()
+    if(hwSPI) spi_begin();
+
+    spiCsLow();
+    spiDcLow();
+
+    spiwrite(0xD9);  // woo sekret command?
+    spiDcHigh();
+    spiwrite(0x10);
+
+    spiDcLow();
+    spiwrite(ILI9341_MADCTL);  // ILI9341_RDDST
+
+    spiDcHigh();
+    spiread(); // p1: xxxxxxx
+    uint8_t p2 = spiread(); // p2: 
+    spiread(); // other stuff
+    spiread(); // other stuff
+    spiread(); // other stuff
+    // 1 r c e v b
+    *row_addr_order    = (p2 >> 6) & 1;
+    *col_addr_order    = (p2 >> 5) & 1;
+    *row_col_exchange  = (p2 >> 4) & 1;
+    *vert_refresh      = (p2 >> 3) & 1;
+    *rgbbgr            = (p2 >> 2) & 1;
+    *hor_refresh       = (p2 >> 1) & 1;
+
+    spiCsHigh();
+
+    if(hwSPI) spi_end();
+    return;
+}
+
+
 void Adafruit_ILI9341::readDisplayStatus(
             bool *row_addr_order,
             bool *col_addr_order,
@@ -614,6 +658,7 @@ void Adafruit_ILI9341::readBlock(
 #endif
 
 void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
+	setMadctl(rotation, 0); // 0=RGB 1=BGR
     // based on readcommand8()
     setAddrWindowOnly(0,y,_width-1,y);
     if(hwSPI) spi_begin();
@@ -625,7 +670,7 @@ void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
     spiDcHigh();
     spiwrite(0x10);
 
-     spiDcLow();
+    spiDcLow();
     spiwrite(ILI9341_RAMRD);
 
     spiDcHigh();
@@ -634,6 +679,7 @@ void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
     spiCsHigh();
 
     if(hwSPI) spi_end();
+	setMadctl(rotation, 1); // 0=RGB 1=BGR
     return;
 }
 
@@ -781,6 +827,37 @@ uint16_t Adafruit_ILI9341::color565(uint8_t r, uint8_t g, uint8_t b) {
 #define MADCTL_BGR 0x08
 #define MADCTL_MH  0x04
 
+void Adafruit_ILI9341::setMadctl(uint8_t r, bool bgr=1) {
+
+  if (hwSPI) spi_begin();
+  writecommand(ILI9341_MADCTL);
+  rotation = rotmode % 4; // can't be higher than 3
+  uint8_t bgrbit = bgr ? MADCTL_BGR : MADCTL_RGB;
+  switch (rotation) {
+   case 0:
+     writedata((madctl_val = MADCTL_MX | bgrbit));
+     _width  = ILI9341_TFTWIDTH;
+     _height = ILI9341_TFTHEIGHT;
+     break;
+   case 1:
+     writedata((madctl_val = MADCTL_MV | bgrbit));
+     _width  = ILI9341_TFTHEIGHT;
+     _height = ILI9341_TFTWIDTH;
+     break;
+  case 2:
+    writedata((madctl_val = MADCTL_MY | bgrbit));
+     _width  = ILI9341_TFTWIDTH;
+     _height = ILI9341_TFTHEIGHT;
+    break;
+   case 3:
+     writedata((madctl_val = MADCTL_MX | MADCTL_MY | MADCTL_MV | bgrbit));
+     _width  = ILI9341_TFTHEIGHT;
+     _height = ILI9341_TFTWIDTH;
+     break;
+  }
+  if (hwSPI) spi_end();
+}
+
 void Adafruit_ILI9341::setRotation(uint8_t m) {
 
   if (hwSPI) spi_begin();
@@ -788,22 +865,22 @@ void Adafruit_ILI9341::setRotation(uint8_t m) {
   rotation = m % 4; // can't be higher than 3
   switch (rotation) {
    case 0:
-     writedata(MADCTL_MX | MADCTL_BGR);
+     writedata((madctl_val = MADCTL_MX | MADCTL_BGR));
      _width  = ILI9341_TFTWIDTH;
      _height = ILI9341_TFTHEIGHT;
      break;
    case 1:
-     writedata(MADCTL_MV | MADCTL_BGR);
+     writedata((madctl_val = MADCTL_MV | MADCTL_BGR));
      _width  = ILI9341_TFTHEIGHT;
      _height = ILI9341_TFTWIDTH;
      break;
   case 2:
-    writedata(MADCTL_MY | MADCTL_BGR);
+    writedata((madctl_val = MADCTL_MY | MADCTL_BGR));
      _width  = ILI9341_TFTWIDTH;
      _height = ILI9341_TFTHEIGHT;
     break;
    case 3:
-     writedata(MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR);
+     writedata((madctl_val = MADCTL_MX | MADCTL_MY | MADCTL_MV | MADCTL_BGR));
      _width  = ILI9341_TFTHEIGHT;
      _height = ILI9341_TFTWIDTH;
      break;
@@ -946,4 +1023,4 @@ uint8_t Adafruit_ILI9341::readcommand8(uint8_t c, uint8_t index) {
  }
  
  */
-/* vim: et */
+// vim: et
