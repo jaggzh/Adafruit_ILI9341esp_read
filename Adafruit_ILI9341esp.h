@@ -14,7 +14,7 @@
  ****************************************************/
 
 #ifndef ESP8266
-	#define ESP8266
+    #define ESP8266
 #endif
 
 #ifndef _ADAFRUIT_ILI9341H_
@@ -127,7 +127,7 @@ class Adafruit_ILI9341 : public Adafruit_GFX {
  public:
 #ifndef ESP8266
   Adafruit_ILI9341(int8_t _CS, int8_t _DC, int8_t _MOSI, int8_t _SCLK,
-		   int8_t _RST, int8_t _MISO);
+           int8_t _RST, int8_t _MISO);
 #endif
 #if defined(USE_HW_CS) || defined(USE_NO_CS)
   Adafruit_ILI9341(int8_t _DC, int8_t _RST = -1);
@@ -148,8 +148,16 @@ class Adafruit_ILI9341 : public Adafruit_GFX {
            invertDisplay(boolean i);
   uint16_t color565(uint8_t r, uint8_t g, uint8_t b);
   void readPixel(
-		uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y);
+        uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y);
   void readRow(uint8_t *store, int16_t y);
+  void readDisplayStatus(
+            bool *row_addr_order,
+            bool *col_addr_order,
+            bool *row_col_exchange,
+            bool *vert_refresh,
+            bool *rgbbgr,
+            bool *hor_refresh
+        );
 
   void  commandList(uint8_t *addr);
 

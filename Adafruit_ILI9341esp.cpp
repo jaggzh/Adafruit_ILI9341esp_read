@@ -39,7 +39,7 @@
 #ifndef ESP8266
 // Constructor when using software SPI.  All output pins are configurable.
 Adafruit_ILI9341::Adafruit_ILI9341(int8_t cs, int8_t dc, int8_t mosi,
-				   int8_t sclk, int8_t rst, int8_t miso) : Adafruit_GFX(ILI9341_TFTWIDTH, ILI9341_TFTHEIGHT) {
+                   int8_t sclk, int8_t rst, int8_t miso) : Adafruit_GFX(ILI9341_TFTWIDTH, ILI9341_TFTHEIGHT) {
   _cs   = cs;
   _dc   = dc;
   _mosi  = mosi;
@@ -112,11 +112,11 @@ void Adafruit_ILI9341::spiwrite(uint8_t c) {
     // Fast SPI bitbang swiped from LPD8806 library
     for(uint8_t bit = 0x80; bit; bit >>= 1) {
       if(c & bit) {
-	//digitalWrite(_mosi, HIGH);
-	*mosiport |=  mosipinmask;
+    //digitalWrite(_mosi, HIGH);
+    *mosiport |=  mosipinmask;
       } else {
-	//digitalWrite(_mosi, LOW);
-	*mosiport &= ~mosipinmask;
+    //digitalWrite(_mosi, LOW);
+    *mosiport &= ~mosipinmask;
       }
       //digitalWrite(_sclk, HIGH);
       *clkport |=  clkpinmask;
@@ -431,7 +431,7 @@ void Adafruit_ILI9341::begin(void) {
 
   writecommand(ILI9341_SLPOUT);    //Exit Sleep 
   if (hwSPI) spi_end();
-  delay(120); 		
+  delay(120);         
   if (hwSPI) spi_begin();
   writecommand(ILI9341_DISPON);    //Display on 
   if (hwSPI) spi_end();
@@ -489,7 +489,7 @@ void Adafruit_ILI9341::setAddrWindowOnly_(uint16_t x0, uint16_t y0, uint16_t x1,
 
 #if 0
 uint16_t Adafruit_ILI9341::readPixel_x(int16_t x, int16_t y) {
-	if (hwSPI) spi_begin();
+    if (hwSPI) spi_begin();
     setAddrWindow(x,y,1,1);
     spiDcLow();
     spiCsLow();
@@ -498,9 +498,9 @@ uint16_t Adafruit_ILI9341::readPixel_x(int16_t x, int16_t y) {
     spiwrite(0x10);
     spiCsHigh();
     spiDcLow();
-	#ifndef ESP8266
-    	digitalWrite(_sclk, LOW);
-	#endif
+    #ifndef ESP8266
+        digitalWrite(_sclk, LOW);
+    #endif
     spiCsLow();
     spiwrite(ILI9341_RAMRD); // command
     spiDcHigh();
@@ -510,17 +510,17 @@ uint16_t Adafruit_ILI9341::readPixel_x(int16_t x, int16_t y) {
     int8_t b = spiread();
     spiCsHigh();
     spiwrite(ILI9341_RAMWR); // switch in write mode
-	if (hwSPI) spi_end();
+    if (hwSPI) spi_end();
     return color565(r,g,b);
 }
 #endif
 
 #if 0
 void Adafruit_ILI9341::readPixel_broken_yellow(
-		uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y) {
+        uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y) {
     setAddrWindowOnly(x,y,x,y);
-	readcommand8(ILI9341_RAMRD); // command
-	//writecommand(0);
+    readcommand8(ILI9341_RAMRD); // command
+    //writecommand(0);
     /* int8_t a = SPI.transfer(0); // dummy read */
     /* int8_t r = SPI.transfer(0); */
     /* int8_t g = SPI.transfer(0); */
@@ -537,9 +537,51 @@ void Adafruit_ILI9341::readPixel_broken_yellow(
 }
 #endif 
 
+void Adafruit_ILI9341::readDisplayStatus(
+            bool *row_addr_order,
+            bool *col_addr_order,
+            bool *row_col_exchange,
+            bool *vert_refresh,
+            bool *rgbbgr,
+            bool *hor_refresh
+        ) {
+    // based on readcommand8()
+    if(hwSPI) spi_begin();
+
+    spiCsLow();
+    spiDcLow();
+
+    spiwrite(0xD9);  // woo sekret command?
+    spiDcHigh();
+    spiwrite(0x10);
+
+     spiDcLow();
+    spiwrite(0x09);  // ILI9341_RDDST
+
+    spiDcHigh();
+    spiread(); // p1: xxxxxxx
+    uint8_t p2 = spiread(); // p2: 
+    spiread(); // other stuff
+    spiread(); // other stuff
+    spiread(); // other stuff
+    // 1 r c e v b
+    *row_addr_order    = (p2 >> 6) & 1;
+    *col_addr_order    = (p2 >> 5) & 1;
+    *row_col_exchange  = (p2 >> 4) & 1;
+    *vert_refresh      = (p2 >> 3) & 1;
+    *rgbbgr            = (p2 >> 2) & 1;
+    *hor_refresh       = (p2 >> 1) & 1;
+
+    spiCsHigh();
+
+    if(hwSPI) spi_end();
+    return;
+}
+
+
 void Adafruit_ILI9341::readPixel(
-		uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y) {
-	// based on readcommand8()
+        uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y) {
+    // based on readcommand8()
     setAddrWindowOnly(x,y,x,y);
     if(hwSPI) spi_begin();
 
@@ -550,7 +592,7 @@ void Adafruit_ILI9341::readPixel(
     spiDcHigh();
     spiwrite(0x10);
 
- 	spiDcLow();
+     spiDcLow();
     spiwrite(ILI9341_RAMRD);
 
     spiDcHigh();
@@ -566,13 +608,13 @@ void Adafruit_ILI9341::readPixel(
 
 #if 0
 void Adafruit_ILI9341::readBlock(
-		uint8_t *store, int16_t x, int16_t y, int16_t x2, int16_t y2) {
-	// based on readcommand8()
+        uint8_t *store, int16_t x, int16_t y, int16_t x2, int16_t y2) {
+    // based on readcommand8()
     setAddrWindowOnly(x,y,x2,y2);
 #endif
 
 void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
-	// based on readcommand8()
+    // based on readcommand8()
     setAddrWindowOnly(0,y,_width-1,y);
     if(hwSPI) spi_begin();
 
@@ -583,7 +625,7 @@ void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
     spiDcHigh();
     spiwrite(0x10);
 
- 	spiDcLow();
+     spiDcLow();
     spiwrite(ILI9341_RAMRD);
 
     spiDcHigh();
@@ -777,10 +819,10 @@ void Adafruit_ILI9341::invertDisplay(boolean i) {
 }
 
 void Adafruit_ILI9341::displayOff(void) {
-	if (hwSPI) spi_begin();
-	//writeCommand(ILI9341_SLPIN);
-	writecommand(0x10);
-  	if (hwSPI) spi_end();
+    if (hwSPI) spi_begin();
+    //writeCommand(ILI9341_SLPIN);
+    writecommand(0x10);
+      if (hwSPI) spi_end();
 }
  
 
@@ -816,7 +858,7 @@ uint8_t Adafruit_ILI9341::spiread(void) {
       digitalWrite(_sclk, HIGH);
       r <<= 1;
       if (digitalRead(_miso))
-	r |= 0x1;
+    r |= 0x1;
     }
 #endif
   }
@@ -849,8 +891,8 @@ uint8_t Adafruit_ILI9341::readcommand8(uint8_t c, uint8_t index) {
     digitalWrite(_sclk, LOW);
 #endif
 
- 	spiDcLow();
- 	spiwrite(c);
+     spiDcLow();
+     spiwrite(c);
 
     spiDcHigh();
     uint8_t r = spiread();
@@ -904,3 +946,4 @@ uint8_t Adafruit_ILI9341::readcommand8(uint8_t c, uint8_t index) {
  }
  
  */
+/* vim: et */
