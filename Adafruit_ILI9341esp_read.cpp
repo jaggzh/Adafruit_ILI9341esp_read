@@ -15,7 +15,7 @@
   Modified 09 May 2015 by Markus Sattler - rewrite the code add ESP8266 support and many optimizations now 220% fastet (320% total)
  ****************************************************/
 
-#include "Adafruit_ILI9341esp.h"
+#include "Adafruit_ILI9341esp_read.h"
 #ifdef ESP8266
 #include <pgmspace.h>
 #else
@@ -539,48 +539,6 @@ void Adafruit_ILI9341::readPixel_broken_yellow(
 }
 #endif 
 
-void Adafruit_ILI9341::setMadctl(
-            bool row_addr_order,
-            bool col_addr_order,
-            bool row_col_exchange,
-            bool vert_refresh,
-            bool rgbbgr,
-            bool hor_refresh
-        ) {
-    // based on readcommand8()
-    if(hwSPI) spi_begin();
-
-    spiCsLow();
-    spiDcLow();
-
-    spiwrite(0xD9);  // woo sekret command?
-    spiDcHigh();
-    spiwrite(0x10);
-
-    spiDcLow();
-    spiwrite(ILI9341_MADCTL);  // ILI9341_RDDST
-
-    spiDcHigh();
-    spiread(); // p1: xxxxxxx
-    uint8_t p2 = spiread(); // p2: 
-    spiread(); // other stuff
-    spiread(); // other stuff
-    spiread(); // other stuff
-    // 1 r c e v b
-    *row_addr_order    = (p2 >> 6) & 1;
-    *col_addr_order    = (p2 >> 5) & 1;
-    *row_col_exchange  = (p2 >> 4) & 1;
-    *vert_refresh      = (p2 >> 3) & 1;
-    *rgbbgr            = (p2 >> 2) & 1;
-    *hor_refresh       = (p2 >> 1) & 1;
-
-    spiCsHigh();
-
-    if(hwSPI) spi_end();
-    return;
-}
-
-
 void Adafruit_ILI9341::readDisplayStatus(
             bool *row_addr_order,
             bool *col_addr_order,
@@ -658,7 +616,11 @@ void Adafruit_ILI9341::readBlock(
 #endif
 
 void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
-	setMadctl(rotation, 0); // 0=RGB 1=BGR
+    // Don't change the RGB mode like this, below!
+    // It will instantly change the conversion between the LCD
+    // controller and the display itself, flickering the thing!
+	//setMadctl(rotation, 0); // 0=RGB 1=BGR
+	
     // based on readcommand8()
     setAddrWindowOnly(0,y,_width-1,y);
     if(hwSPI) spi_begin();
@@ -679,7 +641,7 @@ void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
     spiCsHigh();
 
     if(hwSPI) spi_end();
-	setMadctl(rotation, 1); // 0=RGB 1=BGR
+	//setMadctl(rotation, 1); // 0=RGB 1=BGR
     return;
 }
 
@@ -827,11 +789,11 @@ uint16_t Adafruit_ILI9341::color565(uint8_t r, uint8_t g, uint8_t b) {
 #define MADCTL_BGR 0x08
 #define MADCTL_MH  0x04
 
-void Adafruit_ILI9341::setMadctl(uint8_t r, bool bgr=1) {
+void Adafruit_ILI9341::setMadctl(uint8_t r, bool bgr) {
 
   if (hwSPI) spi_begin();
   writecommand(ILI9341_MADCTL);
-  rotation = rotmode % 4; // can't be higher than 3
+  rotation = r % 4; // can't be higher than 3
   uint8_t bgrbit = bgr ? MADCTL_BGR : MADCTL_RGB;
   switch (rotation) {
    case 0:

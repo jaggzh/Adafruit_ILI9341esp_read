@@ -144,7 +144,7 @@ class Adafruit_ILI9341 : public Adafruit_GFX {
            drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color),
            fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
              uint16_t color),
-           void setMadctl(uint8_t r, bool bgr=1);
+           setMadctl(uint8_t r, bool bgr=1),
            setRotation(uint8_t r),
            invertDisplay(boolean i);
   uint16_t color565(uint8_t r, uint8_t g, uint8_t b);
@@ -225,7 +225,7 @@ class Adafruit_ILI9341 : public Adafruit_GFX {
     int8_t  _dc, _rst;
     uint32_t _dcMask, _rstMask;
 #endif
-  uint8_t madctl_val;
+    uint8_t madctl_val;
 };
 
 #endif
