@@ -666,7 +666,7 @@ void Adafruit_ILI9341::writeRow(uint8_t *store, int16_t y) {
     spiwrite(ILI9341_RAMWR);
 
     spiDcHigh();
-    spiwriteBytes(store, _width);
+    spiwriteBytes(store, _width*3);
     spiDcLow();
     spiCsHigh();
 
