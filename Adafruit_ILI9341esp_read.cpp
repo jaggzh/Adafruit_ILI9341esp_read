@@ -658,7 +658,8 @@ void Adafruit_ILI9341::writeRow(uint16_t *store, int16_t y) {
     spiDcHigh();
     setAddrWindow_(0,y,_width-1,y); // { cs_ () RAMWR }
     Serial.print("Width:"); Serial.print(_width); Serial.print(" ");
-    spiwriteBytes((uint8_t *)store, _width*2); // x2 for uint16_t
+    for (int i=0; i<_width; i++) spiwrite16(store[i]);
+    /* spiwriteBytes((uint8_t *)store, _width*2); // x2 for uint16_t */
     spiCsHigh();
 
     if(hwSPI) spi_end();
