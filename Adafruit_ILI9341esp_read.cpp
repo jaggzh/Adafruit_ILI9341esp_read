@@ -645,34 +645,24 @@ void Adafruit_ILI9341::readRow(uint8_t *store, int16_t y) {
     return;
 }
 
-void Adafruit_ILI9341::writeRow(uint8_t *store, int16_t y) {
+void Adafruit_ILI9341::writeRow(uint16_t *store, int16_t y) {
     // Don't change the RGB mode like this, below!
     // It will instantly change the conversion between the LCD
     // controller and the display itself, flickering the thing!
 	//setMadctl(rotation, 0); // 0=RGB 1=BGR
 	
     // based on readcommand8()
-    setAddrWindowOnly(0,y,_width-1,y);
+    // setAddrWindowOnly(0,y,_width-1,y);
     if(hwSPI) spi_begin();
-
     spiCsLow();
-    spiDcLow();
-
-    spiwrite(0xD9);  // woo sekret command?
     spiDcHigh();
-    spiwrite(0x10);
-
-    spiDcLow();
-    spiwrite(ILI9341_RAMWR);
-
-    spiDcHigh();
-    spiwriteBytes(store, _width*3);
-    spiDcLow();
+    setAddrWindow_(0,y,_width-1,y); // { cs_ () RAMWR }
+    Serial.print("Width:"); Serial.print(_width); Serial.print(" ");
+    spiwriteBytes((uint8_t *)store, _width*2); // x2 for uint16_t
     spiCsHigh();
 
     if(hwSPI) spi_end();
 	//setMadctl(rotation, 1); // 0=RGB 1=BGR
-    return;
 }
 
 void Adafruit_ILI9341::pushColor(uint16_t color) {

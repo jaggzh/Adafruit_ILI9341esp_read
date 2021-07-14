@@ -150,8 +150,8 @@ class Adafruit_ILI9341 : public Adafruit_GFX {
   uint16_t color565(uint8_t r, uint8_t g, uint8_t b);
   void readPixel(
         uint8_t *rp, uint8_t *gp, uint8_t *bp, int16_t x, int16_t y);
-  void readRow(uint8_t *store, int16_t y);
-  void writeRow(uint8_t *store, int16_t y);
+  void readRow(uint8_t *store, int16_t y);   // 8bpp
+  void writeRow(uint16_t *store, int16_t y); // 16bpp
   void readDisplayStatus(
             bool *row_addr_order,
             bool *col_addr_order,
